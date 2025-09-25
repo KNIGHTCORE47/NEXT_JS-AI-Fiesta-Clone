@@ -2,6 +2,10 @@
 
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "./_components/app-sidebar";
+
+
 
 export function Provider({
     children,
@@ -9,7 +13,11 @@ export function Provider({
 }: React.ComponentProps<typeof NextThemesProvider>) {
     return (
         <NextThemesProvider {...props}>
-            {children}
+            <SidebarProvider>
+                <AppSidebar />
+                <SidebarTrigger />
+                {children}
+            </SidebarProvider>
         </NextThemesProvider>
     )
 }
