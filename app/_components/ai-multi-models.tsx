@@ -47,10 +47,10 @@ export default function AiMultiModels() {
             {
                 aiModelList.map((model, index) => (
                     <div
+                        key={index}
                         className={`flex flex-col h-full border-r border-gray-200 dark:border-gray-700 overflow-auto ${model.enable ? 'flex-1 min-w-[400px]' : 'flex-none w-[100px]'}`}
                     >
                         <div
-                            key={index}
                             className='w-full h-[80px] flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700'
                         >
                             <div
