@@ -1,0 +1,20 @@
+import { NextRequest, NextResponse } from "next/server";
+import { aj } from '@/config/arcjet_config';
+
+export async function GET(req: NextRequest) {
+    const userId = "user123"; // Replace with your authenticated user ID
+    const decision = await aj.protect(req, { userId, requested: 5 }); // Deduct 5 tokens from the bucket
+    console.log("Arcjet decision", decision);
+
+    if (decision.isDenied()) {
+        return NextResponse.json(
+            { error: "Too Many Requests", reason: decision.reason },
+            { status: 429 },
+        );
+    }
+
+    return NextResponse.json({
+        sucess: true,
+        message: "Hello world"
+    }, { status: 200 });
+}
