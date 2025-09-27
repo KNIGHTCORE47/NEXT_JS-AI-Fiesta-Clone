@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from '@/components/ui/button';
+import { useUser } from '@clerk/nextjs';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Image from 'next/image';
@@ -8,6 +9,7 @@ import React from 'react'
 
 export default function SidebarHeaderComponent() {
     const { theme, setTheme } = useTheme();
+    const authUser = useUser();
 
     return (
         <div className='p-2 space-y-2'>
@@ -53,13 +55,17 @@ export default function SidebarHeaderComponent() {
                 </div>
             </div>
 
-            <Button
-                variant='default'
-                size='lg'
-                className='mt-2 w-full'
-            >
-                + New Chat
-            </Button>
+            {
+                authUser.isLoaded && authUser.isSignedIn && (
+                    <Button
+                        variant='default'
+                        size='lg'
+                        className='mt-2 w-full'
+                    >
+                        + New Chat
+                    </Button>
+                )
+            }
         </div>
     )
 }
