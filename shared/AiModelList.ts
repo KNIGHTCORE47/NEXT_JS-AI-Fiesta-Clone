@@ -95,10 +95,40 @@ const aiModelsConfig: AIModelsConfig = [
             { name: "Llama 4 Scout 17B 16E Instruct", premium: true, id: "Llama-4-Scout-17B-16E-Instruct" },
         ],
     },
-];
+] as const;
+
+// Extract model names as a union type for type safety
+type ModelName = typeof aiModelsConfig[number]['model'];
+
+// Improved interface with type safety
+interface DefaultModelConfig {
+    modelId: string;
+}
+
+// Use Record with the ModelName union type for type safety
+type DefaultModelList = Record<ModelName, DefaultModelConfig>;
+
+// Set Default Models
+export const DefaultModel: DefaultModelList =
+{
+    "GPT": { "modelId": "gpt-4.1-mini" },
+    "Gemini": { "modelId": "gemini-2.5-flash-lite" },
+    "DeepSeek": { "modelId": "DeepSeek-R1" },
+    "Mistral": { "modelId": "mistral-medium-2505" },
+    "Grok": { "modelId": "grok-3-mini" },
+    "Cohere": { "modelId": "cohere-command-a" },
+    "Llama": { "modelId": "Llama-3.3-70B-Instruct" }
+}
 
 
 export default aiModelsConfig;
 
 // Export types for use in other files
-export type { AIModel, SubModel, AIModelsConfig };
+export type {
+    AIModel,
+    SubModel,
+    AIModelsConfig,
+    DefaultModelList,
+    ModelName,
+    DefaultModelConfig
+};

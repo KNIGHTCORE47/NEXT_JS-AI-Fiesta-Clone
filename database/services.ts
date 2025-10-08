@@ -5,19 +5,28 @@ import {
 } from "firebase/firestore";
 import db from "./firebase_config";
 import { useUser } from '@clerk/nextjs';
+import { useDefaultModel } from '@/context/ai_context/useDefaultModel';
+import { DefaultModelList } from '@/shared/AiModelList';
 
 
 // Extract the User type from useUser hook
-type ClerkUser = NonNullable<ReturnType<typeof useUser>['user']>;
+export type ClerkUser = NonNullable<ReturnType<typeof useUser>['user']>;
 
 // NOTE - Create interface for user data
-interface UserDataINF {
+export interface UserDataINF {
     name: string;
     email: string;
     remainingMsg: number;
     plan: string;
     credits: number;
     createdAt: Date;
+    selectedModelPref?: DefaultModelList;
+}
+
+// Return type for the registration function
+interface RegisterUserResult {
+    isNewUser: boolean;
+    userData: UserDataINF;
 }
 
 export async function RegisterUserAccountToDB(
@@ -37,7 +46,13 @@ export async function RegisterUserAccountToDB(
 
         if (docSnap.exists()) {
             console.log("Document data [Existing User]:", docSnap.data());
-            return;
+
+            const userInfo = docSnap.data();
+
+            return {
+                isNewUser: false,
+                userData: userInfo
+            };
         }
 
         // NOTE - For New User
@@ -53,6 +68,11 @@ export async function RegisterUserAccountToDB(
         await setDoc(existingUser, userData);
 
         console.log("Document data [New User]:", userData);
+
+        return {
+            isNewUser: true,
+            userData: userData
+        };
 
     } catch (error: unknown) {
         console.error(error);
