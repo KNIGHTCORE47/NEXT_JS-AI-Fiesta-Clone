@@ -8,17 +8,27 @@ import Image from 'next/image';
 import {
     Select,
     SelectContent,
+    SelectGroup,
     SelectItem,
+    SelectLabel,
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select"
 import { Switch } from '@/components/ui/switch';
 import { Lock, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useDefaultModel } from '@/context/ai_context/useDefaultModel';
+import { doc, updateDoc } from 'firebase/firestore';
+import { useUser } from '@clerk/nextjs';
+import db from '@/database/firebase_config';
 
 
 export default function AiMultiModels() {
     const [aiModelList, setAiModelList] = React.useState<AIModelsConfig>(aiModelsConfig);
+
+    const { aiSelectedModels, setAiSelectedModels } = useDefaultModel();
+    const { user } = useUser();
+
 
 
     // NOTE - [Logic] Here the onToggleChange function is used to update the state of the AI model list. As the user toggles the switch, the function updates the state of the AI model list, and the switch is updated accordingly. With this, the user can toggle the switch to enable or disable the AI model and as developers, we can render the UI dynamically based on the state of the AI model list.
@@ -37,6 +47,61 @@ export default function AiMultiModels() {
                 return item
             })
         });
+    }
+
+    // NOTE - [Logic] Here the onSelectModel function is used to update the state of the AI model list. As the user selects a model, the function updates the state of the AI model list, and the UI is updated accordingly, and on reload, the user can see the selected model which is stored in the state.
+    async function onSelectModel(
+        parentModel: string,
+        value: string
+    ) {
+        // Create the updated model selection
+        const updatedModels = {
+            ...aiSelectedModels!,
+            [parentModel]: {
+                modelId: value
+            }
+        };
+
+        // Update local state
+        setAiSelectedModels(updatedModels);
+
+        // NOTE - Update Firebase DB with changes [new selected model data]
+        try {
+            if (!user?.primaryEmailAddress?.emailAddress) {
+                console.error('User email not available');
+                return;
+            }
+
+            const docRef = doc(db, "users", user.primaryEmailAddress.emailAddress);
+
+            await updateDoc(docRef, {
+                selectedModelPref: updatedModels
+            })
+
+        } catch (error: unknown) {
+            console.error(error);
+            if (error instanceof Error) {
+                throw new Error(error.message);
+            } else {
+                throw new Error("Unknown error");
+            }
+        }
+    }
+
+    // NOTE - Helper function to get the current selected model or default
+    function getSelectedModelId(
+        model: typeof aiModelList[0]
+    ): string {
+        return aiSelectedModels?.[model.model]?.modelId || model.subModel[0].id;
+    }
+
+    // NOTE - Helper function to get the display name for selected model
+    function getSelectedModelName(
+        model: typeof aiModelList[0]
+    ): string {
+        const selectedId = getSelectedModelId(model);
+        const subModel = model.subModel.find(sm => sm.id === selectedId);
+        return subModel?.name || model.subModel[0].name;
     }
 
 
@@ -66,16 +131,53 @@ export default function AiMultiModels() {
 
                                 {
                                     model.enable && (
-                                        <Select>
+                                        <Select
+                                            defaultValue={getSelectedModelId(model)}
+                                            onValueChange={(value) => onSelectModel(model.model, value)}
+                                            disabled={model.premium}
+                                        >
                                             <SelectTrigger className="w-[180px]">
-                                                <SelectValue placeholder={model.subModel[0].name} />
+                                                <SelectValue placeholder={getSelectedModelName(model)} />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {
-                                                    model.subModel.map(subModel => (
-                                                        <SelectItem key={subModel.id} value={subModel.name}>{subModel.name}</SelectItem>
-                                                    ))
-                                                }
+                                                <SelectGroup>
+                                                    <SelectLabel
+                                                        className='font-bold'
+                                                    >
+                                                        Free
+                                                    </SelectLabel>
+
+                                                    {
+                                                        model.subModel
+                                                            .filter(subModel => !subModel.premium)
+                                                            .map(subModel => (
+                                                                <SelectItem key={subModel.id} value={subModel.id} className='pl-5'>{subModel.name}</SelectItem>
+                                                            ))
+                                                    }
+                                                </SelectGroup>
+
+                                                <SelectGroup>
+                                                    <SelectLabel
+                                                        className='font-bold'
+                                                    >
+                                                        Premium
+                                                    </SelectLabel>
+
+                                                    {
+                                                        model.subModel
+                                                            .filter(subModel => subModel.premium)
+                                                            .map(subModel => (
+                                                                <SelectItem
+                                                                    key={subModel.id}
+                                                                    value={subModel.id}
+                                                                    className='pl-5'
+                                                                    disabled={subModel.premium}
+                                                                >
+                                                                    {subModel.name} {subModel.premium && <Lock className='w-4 h-4' />}
+                                                                </SelectItem>
+                                                            ))
+                                                    }
+                                                </SelectGroup>
                                             </SelectContent>
                                         </Select>
                                     )
