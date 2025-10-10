@@ -8,6 +8,22 @@ export async function POST(request: NextRequest) {
     try {
         const { model, msg, parentModel } = await request.json();
 
+        // Check Missing required fields
+        if (!model || !msg || parentModel) {
+            return NextResponse.json({
+                success: false,
+                message: "Missing required fields"
+            }, { status: 400 });
+        }
+
+        // Check Invalid environment variables
+        if (!KRAVIX_STUDIO_URI || !KRAVIX_STUDIO_API_KEY) {
+            return NextResponse.json({
+                success: false,
+                message: "Missing required environment variables"
+            }, { status: 400 });
+        }
+
         const response = await axios.post(
             KRAVIX_STUDIO_URI,
             {
@@ -41,10 +57,11 @@ export async function POST(request: NextRequest) {
     } catch (error: unknown) {
         console.error("Error initializing user:", error);
 
-        if (error instanceof Error) {
-            throw new Error(error.message);
-        } else {
-            throw new Error("Unknown error");
-        }
+        const errorMessage = error instanceof Error ? error.message : "Unknown error";
+
+        return NextResponse.json({
+            success: false,
+            message: errorMessage
+        }, { status: 500 });
     }
 }
