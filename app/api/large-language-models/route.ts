@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
         const { model, msg, parentModel } = await request.json();
 
         // Check Missing required fields
-        if (!model || !msg || parentModel) {
+        if (!model || !msg || !parentModel) {
             return NextResponse.json({
                 success: false,
                 message: "Missing required fields"

@@ -103,6 +103,7 @@ type ModelName = typeof aiModelsConfig[number]['model'];
 // Improved interface with type safety
 interface DefaultModelConfig {
     modelId: string;
+    enable?: boolean;
 }
 
 // Use Record with the ModelName union type for type safety
@@ -111,13 +112,13 @@ type DefaultModelList = Record<ModelName, DefaultModelConfig>;
 // Set Default Models
 export const DefaultModel: DefaultModelList =
 {
-    "GPT": { "modelId": "gpt-4.1-mini" },
-    "Gemini": { "modelId": "gemini-2.5-flash-lite" },
-    "DeepSeek": { "modelId": "DeepSeek-R1" },
-    "Mistral": { "modelId": "mistral-medium-2505" },
-    "Grok": { "modelId": "grok-3-mini" },
-    "Cohere": { "modelId": "cohere-command-a" },
-    "Llama": { "modelId": "Llama-3.3-70B-Instruct" }
+    "GPT": { "modelId": "gpt-4.1-mini", enable: true },
+    "Gemini": { "modelId": "gemini-2.5-flash-lite", enable: true },
+    "DeepSeek": { "modelId": "DeepSeek-R1", enable: true },
+    "Mistral": { "modelId": "mistral-medium-2505", enable: true },
+    "Grok": { "modelId": "grok-3-mini", enable: true },
+    "Cohere": { "modelId": "cohere-command-a", enable: true },
+    "Llama": { "modelId": "Llama-3.3-70B-Instruct", enable: true },
 }
 
 

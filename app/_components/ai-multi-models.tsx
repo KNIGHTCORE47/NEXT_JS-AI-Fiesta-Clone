@@ -15,19 +15,17 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { Switch } from '@/components/ui/switch';
-import { Lock, MessageSquare } from 'lucide-react';
+import { Loader2, Lock, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useDefaultModel } from '@/context/ai_context/useDefaultModel';
-import { doc, updateDoc } from 'firebase/firestore';
-import { useUser } from '@clerk/nextjs';
-import db from '@/database/firebase_config';
+import Markdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 
 export default function AiMultiModels() {
     const [aiModelList, setAiModelList] = React.useState<AIModelsConfig>(aiModelsConfig);
 
-    const { aiSelectedModels, setAiSelectedModels } = useDefaultModel();
-    const { user } = useUser();
+    const { aiSelectedModels, setAiSelectedModels, messages, setMessages } = useDefaultModel();
 
 
 
@@ -47,6 +45,17 @@ export default function AiMultiModels() {
                 return item
             })
         });
+
+        setAiSelectedModels(prev => {
+            if (!prev) return {};
+            return {
+                ...prev,
+                [model]: {
+                    ...(prev?.[model] ?? {}),
+                    enable: value
+                }
+            }
+        });
     }
 
     // NOTE - [Logic] Here the onSelectModel function is used to update the state of the AI model list. As the user selects a model, the function updates the state of the AI model list, and the UI is updated accordingly, and on reload, the user can see the selected model which is stored in the state.
@@ -54,38 +63,15 @@ export default function AiMultiModels() {
         parentModel: string,
         value: string
     ) {
-        // Create the updated model selection
-        const updatedModels = {
-            ...aiSelectedModels!,
+        // Update local state
+        setAiSelectedModels(prev => ({
+            ...prev,
             [parentModel]: {
                 modelId: value
             }
-        };
+        }));
 
-        // Update local state
-        setAiSelectedModels(updatedModels);
 
-        // NOTE - Update Firebase DB with changes [new selected model data]
-        try {
-            if (!user?.primaryEmailAddress?.emailAddress) {
-                console.error('User email not available');
-                return;
-            }
-
-            const docRef = doc(db, "users", user.primaryEmailAddress.emailAddress);
-
-            await updateDoc(docRef, {
-                selectedModelPref: updatedModels
-            })
-
-        } catch (error: unknown) {
-            console.error(error);
-            if (error instanceof Error) {
-                throw new Error(error.message);
-            } else {
-                throw new Error("Unknown error");
-            }
-        }
     }
 
     // NOTE - Helper function to get the current selected model or default
@@ -151,7 +137,12 @@ export default function AiMultiModels() {
                                                         model.subModel
                                                             .filter(subModel => !subModel.premium)
                                                             .map(subModel => (
-                                                                <SelectItem key={subModel.id} value={subModel.id} className='pl-5'>{subModel.name}</SelectItem>
+                                                                <SelectItem
+                                                                    key={subModel.id}
+                                                                    value={subModel.id}
+                                                                    className='pl-5'>
+                                                                    {subModel.name}
+                                                                </SelectItem>
                                                             ))
                                                     }
                                                 </SelectGroup>
@@ -201,17 +192,51 @@ export default function AiMultiModels() {
                             </div>
                         </div>
 
-                        <div
-                            className='h-full w-full flex items-center justify-center'
-                        >
-                            {
-                                model.premium && model.enable && (
+
+                        {
+                            model.premium && model.enable && (
+                                <div
+                                    className='h-full w-full flex items-center justify-center'
+                                >
                                     <Button>
                                         <Lock className='w-4 h-4' /> Upgrade to Unlock
                                     </Button>
-                                )
-                            }
-                        </div>
+                                </div>
+                            )
+                        }
+
+                        {
+                            model.enable && (
+                                <div
+                                    className='flex-1 p-4'
+                                >
+                                    <div className='flex-1 space-y-2 p-4'>
+                                        {messages[model.model]?.map((msg, index) => (
+                                            <div
+                                                className={`p-2 rounded-md ${msg.role === 'user' ? "bg-blue-300 text-blue-900 dark:bg-blue-700 dark:text-white" : "bg-gray-200 text-gray-900 dark:bg-gray-800 dark:text-white"}`}
+                                                key={index}
+                                            >
+                                                {
+                                                    msg.role === 'assistant' && (
+                                                        <span className='text-sm text-gray-400'>{msg.model ?? model.model}</span>
+                                                    )
+                                                }
+                                                <div className='flex gap-x-2'>
+                                                    {msg.content == "loading" && <><Loader2 className='w-4 h-4 animate-spin' /><span className='text-sm text-gray-400'>Thinking...</span></>}
+                                                </div>
+                                                {msg.content != "loading" && (
+                                                    <Markdown
+                                                        remarkPlugins={[remarkGfm]}
+                                                    >
+                                                        {msg.content}
+                                                    </Markdown>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        }
                     </div>
                 ))
             }
