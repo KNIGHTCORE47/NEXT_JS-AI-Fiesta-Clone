@@ -12,14 +12,17 @@ import DefaultModelProvider from "@/context/ai_context/defaultModelProvider";
 import { useDefaultModel } from "@/context/ai_context/useDefaultModel";
 import UserDetailProvider from '@/context/user_context/userDetailProvider';
 import { useUserDetail } from '@/context/user_context/useUserDetail';
+import { DefaultModel } from '@/shared/AiModelList';
+import { doc, updateDoc } from 'firebase/firestore';
+import db from '@/database/firebase_config';
 
 
 // Inner component that can use the context
 function UserInitializer({ children }: { children: React.ReactNode }) {
     const { user } = useUser();
-    const { setAiSelectedModels } = useDefaultModel();
+    const { aiSelectedModels, setAiSelectedModels } = useDefaultModel();
     const { setUserDetail } = useUserDetail();
-    const [isInitialized, setIsInitialized] = React.useState(false);
+    const [isInitialized, setIsInitialized] = React.useState<boolean>(false);
 
     React.useEffect(() => {
         if (!user || isInitialized) {
@@ -35,7 +38,7 @@ function UserInitializer({ children }: { children: React.ReactNode }) {
 
                 // If user exists and has preferences, load them
                 if (!result.isNewUser && result.userData.selectedModelPref) {
-                    setAiSelectedModels(result.userData.selectedModelPref);
+                    setAiSelectedModels(result.userData.selectedModelPref ?? DefaultModel);
                     console.log("Loaded user preferences:", result.userData.selectedModelPref);
                 } else {
                     console.log("Using default model preferences");
@@ -56,6 +59,33 @@ function UserInitializer({ children }: { children: React.ReactNode }) {
 
         initializeUser(user);
     }, [user, setAiSelectedModels, setUserDetail, isInitialized]);
+
+    // Update Firebase when aiSelectedModels changes (but only after initialization)
+    React.useEffect(() => {
+        // Skip if not initialized or no user
+        if (!isInitialized || !user?.primaryEmailAddress?.emailAddress || !aiSelectedModels) {
+            return;
+        }
+
+        async function updateAiModelSelectionPref() {
+            try {
+                const docRef = doc(db, "users", user!.primaryEmailAddress!.emailAddress!);
+
+                await updateDoc(docRef, {
+                    selectedModelPref: aiSelectedModels
+                });
+
+            } catch (error: unknown) {
+                console.error("Error updating model preferences:", error);
+
+                if (error instanceof Error) {
+                    console.error(error.message);
+                }
+            }
+        }
+
+        updateAiModelSelectionPref();
+    }, [aiSelectedModels, user, isInitialized]);
 
     return <>{children}</>;
 }
